@@ -4,7 +4,7 @@ pipeline {
   environment {
     AWS_REGION = 'us-east-1'
     STACK_NAME = 'sample-vpc-3az'
-    TEMPLATE   = 'cft/vpc-3az-public.yaml'
+    TEMPLATE   = 'infracft.yaml'
   }
 
   stages {
@@ -18,8 +18,8 @@ pipeline {
       steps {
         bat """
           aws cloudformation validate-template ^
-            --region %AWS_REGION% ^
-            --template-body file://%TEMPLATE%
+            --region us-east-2 ^
+            --template-body file://infracft.yaml
         """
       }
     }
@@ -29,8 +29,8 @@ pipeline {
         bat """
           aws cloudformation deploy ^
             --region %AWS_REGION% ^
-            --stack-name %STACK_NAME% ^
-            --template-file %TEMPLATE% ^
+            --stack-name student-infra-pipeline ^
+            --template-file infracft.yaml ^
             --capabilities CAPABILITY_NAMED_IAM
         """
       }
