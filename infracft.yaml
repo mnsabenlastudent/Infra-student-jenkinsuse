@@ -23,9 +23,6 @@ Parameters:
     Description: CIDR for public subnet in AZ3
 
 Resources:
-  # --------------------
-  # VPC
-  # --------------------
   VPC:
     Type: AWS::EC2::VPC
     Properties:
@@ -35,10 +32,6 @@ Resources:
       Tags:
         - Key: Name
           Value: sample-vpc
-
-  # --------------------
-  # Internet Gateway
-  # --------------------
   InternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
@@ -51,10 +44,6 @@ Resources:
     Properties:
       VpcId: !Ref VPC
       InternetGatewayId: !Ref InternetGateway
-
-  # --------------------
-  # Public Subnets
-  # --------------------
   PublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
@@ -87,10 +76,6 @@ Resources:
       Tags:
         - Key: Name
           Value: public-subnet-az3
-
-  # --------------------
-  # Route Table
-  # --------------------
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -107,10 +92,6 @@ Resources:
       RouteTableId: !Ref PublicRouteTable
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref InternetGateway
-
-  # --------------------
-  # Subnet Associations
-  # --------------------
   Subnet1RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
@@ -131,4 +112,47 @@ Resources:
 
 Outputs:
   VpcId:
-    Description: VPC ID
+    Description: ID of the VPC
+    Value: !Ref VPC
+  VpcCidr:
+    Description: CIDR block of the VPC
+    Value: !GetAtt VPC.CidrBlock
+  InternetGatewayId:
+    Description: Internet Gateway ID
+    Value: !Ref InternetGateway
+  InternetGatewayAttachment:
+    Description: IGW attachment to the VPC
+    Value: !Ref AttachGateway
+  PublicSubnet1Id:
+    Description: Public subnet ID in AZ1
+    Value: !Ref PublicSubnet1
+  PublicSubnet1Az:
+    Description: Availability Zone of Public Subnet 1
+    Value: !GetAtt PublicSubnet1.AvailabilityZone
+  PublicSubnet2Id:
+    Description: Public subnet ID in AZ2
+    Value: !Ref PublicSubnet2
+  PublicSubnet2Az:
+    Description: Availability Zone of Public Subnet 2
+    Value: !GetAtt PublicSubnet2.AvailabilityZone
+  PublicSubnet3Id:
+    Description: Public subnet ID in AZ3
+    Value: !Ref PublicSubnet3
+  PublicSubnet3Az:
+    Description: Availability Zone of Public Subnet 3
+    Value: !GetAtt PublicSubnet3.AvailabilityZone
+  PublicRouteTableId:
+    Description: Route table ID for public subnets
+    Value: !Ref PublicRouteTable
+  PublicRouteId:
+    Description: Default route to Internet Gateway
+    Value: !Ref PublicRoute
+  Subnet1RouteTableAssociationId:
+    Description: Route table association for subnet AZ1
+    Value: !Ref Subnet1RouteTableAssociation
+  Subnet2RouteTableAssociationId:
+    Description: Route table association for subnet AZ2
+    Value: !Ref Subnet2RouteTableAssociation
+  Subnet3RouteTableAssociationId:
+    Description: Route table association for subnet AZ3
+    Value: !Ref Subnet3RouteTableAssociation
