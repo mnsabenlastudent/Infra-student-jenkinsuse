@@ -1,143 +1,47 @@
----
-#Current template is as agnostic as it can be made with current CXL deployment structure.
-AWSTemplateFormatVersion: 2010-09-09
-Description: Creates web server for ORXe.
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Sample CFT - Create an EC2 instance with a Security Group (SSH + HTTP)
 Parameters:
-  InstanceType:
-    Description: Amazon Web EC2 instance type.
-    Type: String
-    Default: c5.2xlarge
-  AZ:
-    Description: Availability zone for the instance to be created.
-    Type: String
-    Default: us-east-1a
-  SGIDs:
-    Description: Security groups for network interfaces for Web server.
-    Type: List<AWS::EC2::SecurityGroup::Id>
-    Default: "sg-0399572a9a7457d84, sg-0d2c4389f79546a11, sg-0c4402a644723e839, sg-043d6bd550d81b098, sg-04dcefc925ad18a3d,sg-092d01fa43953a0d4"
-  HostSubnetID:          
-    Description: CIDR for the Web tier primary subnet.
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC where the Security Group will be created
+    Default:
+  SubnetId:
     Type: AWS::EC2::Subnet::Id
-    Default: subnet-006f18fac0e39646b
-  AmiID:
-    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
-    Description: Base AMI ID of state server
-    Default: orxe_PT_web_server_amiID
-  InstanceDeployRole:
-    Description: IAM instance deployment role
+    Description: Subnet where the EC2 instance will be launched
+    Default:
+  InstanceType:
     Type: String
-    Default: SSMInstanceRole
-  InstanceKeypair:
-    Description: AWS keypair for EC2 access
+    Default: t3.micro
+    AllowedValues:
+      - t3.micro
+      - t3.small
+      - t3.medium
+      - t2.micro
+      - t2.small
+      - t2.medium
+    Description: EC2 instance type
+  AllowedSshCidr:
     Type: String
-    Default: DMZ_Web_Nonprod
-  DomainName:
-    Description: Domain Name of the Web server being created.
-    Type: String
-    Default: 'cxnonprod'
-  DomainUserName:
-    Description: Domain UserName of the Web server being created.
-    Type: String
-    NoEcho: true
-  FSXFQDN:
-    Description: FSX FQDN which can be obtained from AWS console.
-    Type: String
-    Default: 'amznfsxk8qfrdjn.cxnonprod.local'
-  Division:
-    Description: Divison tag assigned to instance.
-    Type: String
-    Default: Travel
-  Environment:
-    Description: Environment tag assigned to instance.
-    Type: String
-    Default: POC
-  ServerType:
-    Description: ServerType tag assigned to instance.
-    Type: String
-    Default: Web
-  Product:
-    Description: Product tag assigned to instance.
-    Type: String
-    Default: ORXe
-  Team:
-    Description: Team tag assigned to instance.
-    Type: String
-    Default: ITP
-
+    Default: 0.0.0.0/0
+    Description: CIDR allowed to SSH (port 22). For security, set to your IP/32.
+  LatestAmiId:
+    Type: "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"
+    Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2
+    Description: Latest Amazon Linux 2 AMI via SSM Parameter
 Resources:
-
-  WebServer:
+  BasicInfrasg:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow SSH and HTTP
+  SampleInstance:
     Type: AWS::EC2::Instance
     Properties:
-      #BlockDeviceMappings:
-      #  - DeviceName: /dev/sda1
-      #    Ebs:
-      #      VolumeType: io1
-      #      Iops: 1000
-      #  - DeviceName: /dev/sdh
-      #    Ebs:
-      #      VolumeType: io1
-      #      Iops: 1000
-      KeyName: !Ref InstanceKeypair
+      ImageId: !Ref LatestAmiId
       InstanceType: !Ref InstanceType
-      AvailabilityZone: !Ref AZ
-      ImageId: !Ref AmiID
+      KeyName: !Ref KeyName
+      SubnetId: !Ref SubnetId
+      SecurityGroupIds:
+        - !Ref EC2SecurityGroup
       Tags:
         - Key: Name
-          Value: !Ref AWS::StackName
-        - Key: Division
-          Value: !Ref Division
-        - Key: Environment
-          Value: !Ref Environment
-        - Key: ServerType
-          Value: !Ref ServerType
-        - Key: Product
-          Value: !Ref Product
-        - Key: Team
-          Value: !Ref Team
-      IamInstanceProfile:
-          Ref: InstanceDeployRole
-      NetworkInterfaces:
-        - GroupSet:
-            Ref: "SGIDs"
-          AssociatePublicIpAddress: false
-          DeleteOnTermination: true
-          DeviceIndex: '0'
-          SubnetId: !Ref HostSubnetID
-      UserData:
-        Fn::Base64:
-          Fn::Sub:
-            - |
-              <powershell> 
-              ##Start
-              mkdir c:\templog
-              Start-Transcript -Path C:\templog\userdata.log -Force
-              $hostname = "${HostName}"
-              $domainName = "${DomainName}"
-              $userName = "${DomainUserName}"
-              $fsxFQDN = "${FSXFQDN}"
-              Set-Content C:\Packages\hostName.txt $hostname
-              Set-Content C:\Packages\domainName.txt $domainName
-              Set-Content C:\Packages\userName.txt $userName
-              Set-Content C:\Packages\FSxFQDN.txt $fsxFQDN
-              
-              #Domain Join and adding Naresh to local admin group in the domainJoin script
-              powershell.exe -ExecutionPolicy Unrestricted c:\packages\domainJoin.ps1
-              
-              #cfn-signal.exe -e $lastexitcode --stack ${AWS::StackId} --resource WebServer --region ${AWS::Region}
-
-              Stop-Transcript
-              ##End
-              </powershell>
-            - HostName: !Ref AWS::StackName
-              DomainName: !Ref DomainName
-              DomainUserName: !Ref DomainUserName
-              FSXFQDN: !Ref FSXFQDN
-      
-Outputs:
-  InstanceID:
-    Description: WebServer Instance ID
-    Value: !Ref WebServer
-
-Feedback
-English (US)
+          Value: Sampleec2
