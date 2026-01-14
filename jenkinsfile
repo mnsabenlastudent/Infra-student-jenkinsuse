@@ -1,0 +1,39 @@
+pipeline {
+  agent any
+
+  environment {
+    AWS_REGION = 'us-east-1'
+    STACK_NAME = 'sample-vpc-3az'
+    TEMPLATE   = 'cft/vpc-3az-public.yaml'
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Validate Template') {
+      steps {
+        bat """
+          aws cloudformation validate-template ^
+            --region %AWS_REGION% ^
+            --template-body file://%TEMPLATE%
+        """
+      }
+    }
+
+    stage('Deploy Stack') {
+      steps {
+        bat """
+          aws cloudformation deploy ^
+            --region %AWS_REGION% ^
+            --stack-name %STACK_NAME% ^
+            --template-file %TEMPLATE% ^
+            --capabilities CAPABILITY_NAMED_IAM
+        """
+      }
+    }
+  }
+}
