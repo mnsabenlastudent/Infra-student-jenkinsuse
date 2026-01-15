@@ -130,12 +130,12 @@ Resources:
       - Key: Name
         Value: ec2-sg
   Ec2Instance:
-  Type: AWS::EC2::Instance
-  Properties:
-    InstanceType:
-    ImageId: '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2}}'
-    SubnetId: !Ref PublicSubnet1
-    SecurityGroupIds: !Ref EC2baseSecurityGroup
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType:
+      ImageId: '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2}}'
+      SubnetId: !Ref PublicSubnet1
+      SecurityGroupIds: !Ref EC2baseSecurityGroup
       
 
 
