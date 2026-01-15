@@ -135,7 +135,8 @@ Resources:
       InstanceType: t3.micro
       ImageId: '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2}}'
       SubnetId: !Ref PublicSubnet1
-      SecurityGroupIds: !Ref EC2baseSecurityGroup
+      SecurityGroupIds: 
+        - !Ref EC2baseSecurityGroup
       
 
 
