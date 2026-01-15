@@ -128,11 +128,11 @@ Resources:
           CidrIp: 0.0.0.0/0
       Tags:
         - Key: Name
-          Value: ec2-sg
+          Value: student-sample-sg
   Ec2Instance:
     Type: AWS::EC2::Instance
     Properties:
-      InstanceType:
+      InstanceType: t3.micro
       ImageId: '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2}}'
       SubnetId: !Ref PublicSubnet1
       SecurityGroupIds: !Ref EC2baseSecurityGroup
