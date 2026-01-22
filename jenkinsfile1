@@ -1,0 +1,46 @@
+pipeline {
+  agent any
+
+  environment {
+    AWS_REGION = 'us-east-2'
+    STACK_NAME = 'student-vpc-3az'
+    TEMPLATE   = 'infracft.yaml'
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Validate Template') {
+      steps {
+        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']]) {
+          bat """
+            aws --version
+            aws sts get-caller-identity
+
+            aws cloudformation validate-template ^
+              --region us-east-2 ^
+              --template-body file://infracft.yaml
+          """
+        }
+      }
+    }
+
+    stage('Deploy Stack') {
+      steps {
+        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']]) {
+          bat """
+            aws cloudformation deploy ^
+              --region %AWS_REGION% ^
+              --stack-name student-infra-pipeline ^
+              --template-file %TEMPLATE% ^
+              --capabilities CAPABILITY_NAMED_IAM
+          """
+        }
+      }
+    }
+  }
+}
