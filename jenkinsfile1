@@ -3,8 +3,8 @@ pipeline {
 
   environment {
     AWS_REGION = 'us-east-2'
-    STACK_NAME = 'student-vpc-3az'
-    TEMPLATE   = 'infracft.yaml'
+    STACK_NAME = 'eks-cluster'
+    TEMPLATE   = 'eks-cluster.yaml'
   }
 
   stages {
@@ -23,7 +23,7 @@ pipeline {
 
             aws cloudformation validate-template ^
               --region us-east-2 ^
-              --template-body file://infracft.yaml
+              --template-body file://eks-cluster.yaml
           """
         }
       }
