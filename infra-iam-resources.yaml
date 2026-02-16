@@ -1,0 +1,178 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Creates 5 IAM roles: ECS Task Role, ECS Execution Role, Lambda API+S3 Role, and two sample roles.
+
+Parameters:
+  S3BucketName:
+    Type: String
+    Default: my-sample-bucket
+    Description: S3 bucket name the Lambda role can access (must already exist unless you add a bucket resource)
+
+Resources:
+  ############################################################
+  # 1) ECS TASK ROLE (app role) - example permissions to ELBv2
+  ############################################################
+  ECSTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-ecs-task-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: EcsTaskElbAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # NOTE: Apps typically do NOT need ELB permissions unless they
+              # manage targets/listeners/rules themselves. This is an example.
+              - Effect: Allow
+                Action:
+                  - elasticloadbalancing:DescribeLoadBalancers
+                  - elasticloadbalancing:DescribeTargetGroups
+                  - elasticloadbalancing:DescribeTargetHealth
+                  - elasticloadbalancing:DescribeListeners
+                  - elasticloadbalancing:DescribeRules
+                Resource: "*"
+
+  ############################################################
+  # 2) ECS EXECUTION ROLE - required for pulling images + logs
+  ############################################################
+  ECSExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-ecs-execution-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        # AWS-managed policy that covers:
+        # - ECR image pull
+        # - CloudWatch Logs (create stream/put events)
+        # - (some) SSM/Secrets access patterns depending on your use
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+  ############################################################
+  # 3) LAMBDA ROLE - API Gateway invoke (GET/POST) + S3 access
+  ############################################################
+  LambdaApiS3Role:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-lambda-api-s3-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        # Basic Lambda logging permissions to CloudWatch Logs
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: LambdaInvokeApiAndS3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # "Lambda POST and GET access" is usually interpreted as:
+              # Lambda can CALL API Gateway endpoints (invoke API).
+              # If you meant "API Gateway can invoke Lambda", that's handled
+              # with AWS::Lambda::Permission on the function, not the role.
+              - Effect: Allow
+                Action:
+                  - execute-api:Invoke
+                Resource: "*"
+
+              # S3 bucket-level permissions
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource: !Sub "arn:aws:s3:::${S3BucketName}"
+
+              # S3 object-level permissions (read/write/delete)
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                Resource: !Sub "arn:aws:s3:::${S3BucketName}/*"
+
+  ############################################################
+  # 4) SAMPLE ROLE 1 - modify as you like
+  ############################################################
+  SampleRole1:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-sample-role-1"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          # Example: EC2 instance profile role pattern
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: SampleRole1ReadOnlyDescribe
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ec2:Describe*
+                  - ssm:Describe*
+                Resource: "*"
+
+  ############################################################
+  # 5) SAMPLE ROLE 2 - modify as you like
+  ############################################################
+  SampleRole2:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-sample-role-2"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          # Example: Assume from a CI system or another AWS service
+          # (here shown as CodeBuild)
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: SampleRole2S3WriteExample
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                Resource: !Sub "arn:aws:s3:::${S3BucketName}/*"
+
+Outputs:
+  ECSTaskRoleArn:
+    Description: ARN of the ECS Task Role
+    Value: !GetAtt ECSTaskRole.Arn
+
+  ECSExecutionRoleArn:
+    Description: ARN of the ECS Execution Role
+    Value: !GetAtt ECSExecutionRole.Arn
+
+  LambdaApiS3RoleArn:
+    Description: ARN of the Lambda API+S3 Role
+    Value: !GetAtt LambdaApiS3Role.Arn
+
+  SampleRole1Arn:
+    Description: ARN of Sample Role 1
+    Value: !GetAtt SampleRole1.Arn
+
+  SampleRole2Arn:
+    Description: ARN of Sample Role 2
+    Value: !GetAtt SampleRole2.Arn
